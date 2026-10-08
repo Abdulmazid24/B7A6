@@ -1,6 +1,7 @@
 import prisma from "../../lib/prisma";
 import { AppError } from "../../utils/app-error";
 import { AuditService } from "../audit/audit.service";
+import { appCache } from "../../utils/cache";
 
 const MAX_CREDITS_PER_SEMESTER = 15;
 const COST_PER_CREDIT = 500.0;
@@ -226,6 +227,8 @@ const registerCourse = async (studentId: string, sectionId: string) => {
         credits: course.credits,
       },
     });
+
+    appCache.del("ADMIN_DASHBOARD_STATS");
 
     return enrollment;
   });

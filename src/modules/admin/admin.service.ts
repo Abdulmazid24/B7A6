@@ -1,6 +1,13 @@
 import prisma from "../../lib/prisma";
+import { appCache } from "../../utils/cache";
+
+const CACHE_KEY = "ADMIN_DASHBOARD_STATS";
 
 const getDashboardStats = async () => {
+  const cached = appCache.get(CACHE_KEY);
+  if (cached) {
+    return cached;
+  }
   const [
     totalStudents,
     totalFaculty,
@@ -99,6 +106,9 @@ const getDashboardStats = async () => {
       recentPayments,
     },
   };
+
+  appCache.set(CACHE_KEY, result, 30); // Cache for 30s
+  return result;
 };
 
 export const AdminDashboardService = {

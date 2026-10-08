@@ -4,6 +4,7 @@ import { config } from "../../config";
 import { AppError } from "../../utils/app-error";
 import { AuditService } from "../audit/audit.service";
 import { IPaginationOptions, calculatePagination } from "../../utils/pagination";
+import { appCache } from "../../utils/cache";
 
 const createCheckoutSession = async (studentId: string, tuitionFeeId: string) => {
   const tuitionFee = await prisma.tuitionFee.findUnique({
@@ -197,6 +198,8 @@ const processSuccessfulPayment = async (session: any) => {
       sessionId: session.id,
     },
   });
+
+  appCache.del("ADMIN_DASHBOARD_STATS");
 };
 
 const getMyInvoices = async (studentId: string) => {
