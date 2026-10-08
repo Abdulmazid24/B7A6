@@ -13,11 +13,33 @@ import { AuditRoutes } from "../modules/audit/audit.routes";
 
 const router = Router();
 
-// Health Check
-router.get("/health", (_req, res) => {
-  res.status(200).json({
+import prisma from "../lib/prisma";
+import { config } from "../config";
+import { RESPONSE_MESSAGES } from "../constants/response-messages";
+import { HTTP_STATUS } from "../constants/status-codes";
+
+// System Diagnostics & Health Check
+router.get("/health", async (_req, res) => {
+  let dbStatus = "CONNECTED";
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+  } catch {
+    dbStatus = "DISCONNECTED";
+  }
+
+  const memory = process.memoryUsage();
+  const uptimeSeconds = Math.floor(process.uptime());
+
+  res.status(HTTP_STATUS.OK).json({
     success: true,
-    message: "University Management System API is healthy and operational",
+    message: RESPONSE_MESSAGES.HEALTH_CHECK_SUCCESS,
+    environment: config.env,
+    database: dbStatus,
+    uptime: `${uptimeSeconds}s`,
+    memory: {
+      rss: `${Math.round(memory.rss / 1024 / 1024)} MB`,
+      heapUsed: `${Math.round(memory.heapUsed / 1024 / 1024)} MB`,
+    },
     timestamp: new Date().toISOString(),
   });
 });

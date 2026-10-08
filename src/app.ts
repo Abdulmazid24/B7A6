@@ -6,10 +6,15 @@ import rateLimit from "express-rate-limit";
 import router from "./routes";
 import { notFound } from "./middleware/not-found";
 import { globalErrorHandler } from "./middleware/global-error";
+import { requestLogger } from "./middleware/request-logger";
 
 import { PaymentController } from "./modules/payment/payment.controller";
+import { HTTP_STATUS } from "./constants/status-codes";
 
 const app: Application = express();
+
+// Request execution timing and status logger
+app.use(requestLogger);
 
 // Security HTTP headers
 app.use(helmet());
@@ -54,7 +59,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Welcome root route
 app.get("/", (_req: Request, res: Response) => {
-  res.status(200).json({
+  res.status(HTTP_STATUS.OK).json({
     success: true,
     message: "Welcome to the University Management System (UMS) REST API",
     documentation: "See /postman/collection.json or README.md",

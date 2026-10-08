@@ -5,6 +5,7 @@ import { verifyToken } from "../utils/jwt";
 import { config } from "../config";
 import prisma from "../lib/prisma";
 import { IAuthUser } from "../types/express";
+import { HTTP_STATUS } from "../constants/status-codes";
 
 export const auth = (...requiredRoles: UserRoleType[]) => {
   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
@@ -19,7 +20,7 @@ export const auth = (...requiredRoles: UserRoleType[]) => {
       }
 
       if (!token) {
-        throw new AppError(401, "You are not authorized to access this resource");
+        throw new AppError(HTTP_STATUS.UNAUTHORIZED, "You are not authorized to access this resource");
       }
 
       // Verify Access Token
@@ -32,21 +33,21 @@ export const auth = (...requiredRoles: UserRoleType[]) => {
       });
 
       if (!user) {
-        throw new AppError(401, "User belonging to this token no longer exists");
+        throw new AppError(HTTP_STATUS.UNAUTHORIZED, "User belonging to this token no longer exists");
       }
 
       if (user.isDeleted) {
-        throw new AppError(403, "This user account has been deactivated");
+        throw new AppError(HTTP_STATUS.FORBIDDEN, "This user account has been deactivated");
       }
 
       if (user.status === "BLOCKED" || user.status === "SUSPENDED") {
-        throw new AppError(403, `Your account is ${user.status.toLowerCase()}`);
+        throw new AppError(HTTP_STATUS.FORBIDDEN, `Your account is ${user.status.toLowerCase()}`);
       }
 
       // Check Role Permissions
       if (requiredRoles.length > 0 && !requiredRoles.includes(user.role as UserRoleType)) {
         throw new AppError(
-          403,
+          HTTP_STATUS.FORBIDDEN,
           `Access forbidden: Role '${user.role}' is not permitted to perform this action`
         );
       }
