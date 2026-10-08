@@ -43,7 +43,9 @@ async function bootstrap() {
   process.on("SIGINT", exitHandler);
 }
 
-// Start server
-bootstrap();
+// Only start the HTTP listener if not running in Vercel serverless environment
+if (!process.env.VERCEL) {
+  bootstrap();
+}
 
 export default app;

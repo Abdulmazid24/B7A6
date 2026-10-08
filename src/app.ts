@@ -7,20 +7,20 @@ import router from "./routes";
 import { notFound } from "./middleware/not-found";
 import { globalErrorHandler } from "./middleware/global-error";
 
+import { PaymentController } from "./modules/payment/payment.controller";
+
 const app: Application = express();
 
 // Security HTTP headers
 app.use(helmet());
 
-// CORS Configuration
+// CORS Configuration - Allows web clients, Postman, and deployed frontends
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:5000",
-      "http://localhost:5173",
-      "https://documenter.getpostman.com",
-    ],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, or Postman) or any origin
+      callback(null, true);
+    },
     credentials: true,
   })
 );
@@ -42,14 +42,14 @@ app.use(limiter);
 // Parse Cookie headers
 app.use(cookieParser());
 
-// Stripe Webhook needs raw body, exclude it from standard json parser
-app.use((req, res, next) => {
-  if (req.originalUrl === "/api/v1/payments/webhook") {
-    next();
-  } else {
-    express.json({ limit: "10mb" })(req, res, next);
-  }
-});
+// Dedicated Stripe Webhook route with raw buffer for signature verification
+app.post(
+  "/api/v1/payments/webhook",
+  express.raw({ type: "application/json" }),
+  PaymentController.handleWebhook
+);
+
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Welcome root route
