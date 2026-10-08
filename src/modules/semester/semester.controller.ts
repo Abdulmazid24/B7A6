@@ -2,14 +2,16 @@ import { Request, Response } from "express";
 import { catchAsync } from "../../utils/catch-async";
 import { sendResponse } from "../../utils/send-response";
 import { SemesterService } from "./semester.service";
+import { HTTP_STATUS } from "../../constants/status-codes";
+import { RESPONSE_MESSAGES } from "../../constants/response-messages";
 
 const createSemester = catchAsync(async (req: Request, res: Response) => {
   const result = await SemesterService.createSemester(req.user!.id, req.body);
 
   sendResponse(res, {
-    statusCode: 201,
+    statusCode: HTTP_STATUS.CREATED,
     success: true,
-    message: "Academic Semester created successfully",
+    message: RESPONSE_MESSAGES.SEMESTER_CREATE_SUCCESS,
     data: result,
   });
 });
@@ -29,9 +31,9 @@ const getAllSemesters = catchAsync(async (req: Request, res: Response) => {
   });
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Semesters retrieved successfully",
+    message: RESPONSE_MESSAGES.SEMESTERS_FETCH_SUCCESS,
     meta: result.meta,
     data: result.data,
   });
@@ -41,9 +43,9 @@ const getSemesterById = catchAsync(async (req: Request, res: Response) => {
   const result = await SemesterService.getSemesterById(req.params.id as string);
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Semester details retrieved successfully",
+    message: RESPONSE_MESSAGES.SEMESTER_FETCH_SUCCESS,
     data: result,
   });
 });
@@ -56,9 +58,9 @@ const updateSemester = catchAsync(async (req: Request, res: Response) => {
   );
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Semester updated successfully",
+    message: RESPONSE_MESSAGES.SEMESTER_UPDATE_SUCCESS,
     data: result,
   });
 });
@@ -70,9 +72,9 @@ const softDeleteSemester = catchAsync(async (req: Request, res: Response) => {
   );
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Semester soft-deleted successfully",
+    message: RESPONSE_MESSAGES.SEMESTER_DELETE_SUCCESS,
     data: result,
   });
 });

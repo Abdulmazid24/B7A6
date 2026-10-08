@@ -1,15 +1,16 @@
 import prisma from "../../lib/prisma";
 import { AppError } from "../../utils/app-error";
-import { IPaginationOptions, calculatePagination } from "../../utils/pagination";
+import { IPaginationOptions } from "../../utils/pagination";
+import { buildPrismaQuery } from "../../utils/query-builder";
 import { AuditService } from "../audit/audit.service";
+import { AUDIT_ACTIONS, AUDIT_RESOURCES } from "../../constants/audit-events";
+import {
+  ICreateDepartmentPayload,
+  IDepartmentFilterParams,
+  IUpdateDepartmentPayload,
+} from "./department.interface";
 
-interface ICreateDepartmentInput {
-  code: string;
-  name: string;
-  description?: string;
-}
-
-const createDepartment = async (adminId: string, payload: ICreateDepartmentInput) => {
+const createDepartment = async (adminId: string, payload: ICreateDepartmentPayload) => {
   const existing = await prisma.academicDepartment.findUnique({
     where: { code: payload.code.toUpperCase() },
   });
@@ -28,8 +29,8 @@ const createDepartment = async (adminId: string, payload: ICreateDepartmentInput
 
   await AuditService.createAuditLog({
     userId: adminId,
-    action: "DEPARTMENT_CREATED",
-    resource: "AcademicDepartment",
+    action: AUDIT_ACTIONS.DEPARTMENT_CREATED,
+    resource: AUDIT_RESOURCES.ACADEMIC_DEPARTMENT,
     details: { code: department.code, name: department.name },
   });
 
@@ -38,27 +39,18 @@ const createDepartment = async (adminId: string, payload: ICreateDepartmentInput
 
 const getAllDepartments = async (
   options: IPaginationOptions,
-  filters: { search?: string }
+  filters: IDepartmentFilterParams
 ) => {
-  const { page, limit, skip, sortBy, sortOrder } = calculatePagination(options);
-
-  const where: any = {
-    isDeleted: false,
-  };
-
-  if (filters.search) {
-    where.OR = [
-      { code: { contains: filters.search, mode: "insensitive" } },
-      { name: { contains: filters.search, mode: "insensitive" } },
-    ];
-  }
+  const query = buildPrismaQuery(options, filters, {
+    searchableFields: ["code", "name"],
+  });
 
   const [data, total] = await Promise.all([
     prisma.academicDepartment.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { [sortBy]: sortOrder },
+      where: query.where,
+      skip: query.skip,
+      take: query.take,
+      orderBy: query.orderBy,
       include: {
         _count: {
           select: {
@@ -68,16 +60,11 @@ const getAllDepartments = async (
         },
       },
     }),
-    prisma.academicDepartment.count({ where }),
+    prisma.academicDepartment.count({ where: query.where }),
   ]);
 
   return {
-    meta: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
+    meta: query.meta(total),
     data,
   };
 };
@@ -146,8 +133,8 @@ const updateDepartment = async (
 
   await AuditService.createAuditLog({
     userId: adminId,
-    action: "DEPARTMENT_UPDATED",
-    resource: "AcademicDepartment",
+    action: AUDIT_ACTIONS.DEPARTMENT_UPDATED,
+    resource: AUDIT_RESOURCES.ACADEMIC_DEPARTMENT,
     details: { id, changes: payload },
   });
 
@@ -185,8 +172,8 @@ const softDeleteDepartment = async (adminId: string, id: string) => {
 
   await AuditService.createAuditLog({
     userId: adminId,
-    action: "DEPARTMENT_SOFT_DELETED",
-    resource: "AcademicDepartment",
+    action: AUDIT_ACTIONS.DEPARTMENT_SOFT_DELETED,
+    resource: AUDIT_RESOURCES.ACADEMIC_DEPARTMENT,
     details: { id, code: department.code },
   });
 

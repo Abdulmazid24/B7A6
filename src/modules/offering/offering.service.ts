@@ -2,18 +2,13 @@ import prisma from "../../lib/prisma";
 import { AppError } from "../../utils/app-error";
 import { IPaginationOptions, calculatePagination } from "../../utils/pagination";
 import { AuditService } from "../audit/audit.service";
-
-interface ICreateOfferingInput {
-  courseId: string;
-  semesterId: string;
-  initialSections?: Array<{
-    sectionNumber: number;
-    capacity: number;
-    roomNumber?: string;
-    schedule?: string;
-    facultyId?: string;
-  }>;
-}
+import { AUDIT_ACTIONS, AUDIT_RESOURCES } from "../../constants/audit-events";
+import {
+  ICreateOfferingPayload,
+  ICreateSectionPayload,
+  IOfferingFilterParams,
+  IUpdateSectionPayload,
+} from "./offering.interface";
 
 const createOffering = async (adminId: string, payload: ICreateOfferingInput) => {
   const [course, semester] = await Promise.all([

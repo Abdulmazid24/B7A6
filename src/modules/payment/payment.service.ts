@@ -5,6 +5,8 @@ import { AppError } from "../../utils/app-error";
 import { AuditService } from "../audit/audit.service";
 import { IPaginationOptions, calculatePagination } from "../../utils/pagination";
 import { appCache } from "../../utils/cache";
+import { AUDIT_ACTIONS, AUDIT_RESOURCES } from "../../constants/audit-events";
+import { HTTP_STATUS } from "../../constants/status-codes";
 
 const createCheckoutSession = async (studentId: string, tuitionFeeId: string) => {
   const tuitionFee = await prisma.tuitionFee.findUnique({
@@ -18,15 +20,15 @@ const createCheckoutSession = async (studentId: string, tuitionFeeId: string) =>
   });
 
   if (!tuitionFee || tuitionFee.isDeleted) {
-    throw new AppError(404, "Tuition fee invoice not found");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "Tuition fee invoice not found");
   }
 
   if (tuitionFee.studentId !== studentId) {
-    throw new AppError(403, "You can only pay for your own tuition fee invoices");
+    throw new AppError(HTTP_STATUS.FORBIDDEN, "You can only pay for your own tuition fee invoices");
   }
 
   if (tuitionFee.dueAmount <= 0 || tuitionFee.status === "PAID") {
-    throw new AppError(400, "This tuition fee is already fully paid");
+    throw new AppError(HTTP_STATUS.BAD_REQUEST, "This tuition fee is already fully paid");
   }
 
   const pendingPayment = await prisma.payment.create({
@@ -77,8 +79,8 @@ const createCheckoutSession = async (studentId: string, tuitionFeeId: string) =>
 
   await AuditService.createAuditLog({
     userId: studentId,
-    action: "STRIPE_CHECKOUT_SESSION_CREATED",
-    resource: "Payment",
+    action: AUDIT_ACTIONS.STRIPE_CHECKOUT_SESSION_CREATED,
+    resource: AUDIT_RESOURCES.PAYMENT,
     details: {
       paymentId: pendingPayment.id,
       sessionId: session.id,
@@ -103,7 +105,7 @@ const handleWebhook = async (rawBody: Buffer, signature: string) => {
       config.stripe.webhookSecret
     );
   } catch (err: any) {
-    throw new AppError(400, `Stripe Webhook Signature Verification Error: ${err.message}`);
+    throw new AppError(HTTP_STATUS.BAD_REQUEST, `Stripe Webhook Signature Verification Error: ${err.message}`);
   }
 
   if (event.type === "checkout.session.completed") {
@@ -122,7 +124,7 @@ const verifyPaymentSession = async (sessionId: string) => {
   const session = await stripe.checkout.sessions.retrieve(sessionId);
 
   if (!session) {
-    throw new AppError(404, "Stripe session not found");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "Stripe session not found");
   }
 
   if (session.payment_status === "paid") {
@@ -190,8 +192,8 @@ const processSuccessfulPayment = async (session: any) => {
 
   await AuditService.createAuditLog({
     userId: payment.studentId,
-    action: "TUITION_PAYMENT_COMPLETED",
-    resource: "Payment",
+    action: AUDIT_ACTIONS.TUITION_PAYMENT_COMPLETED,
+    resource: AUDIT_RESOURCES.PAYMENT,
     details: {
       paymentId: payment.id,
       amount: payment.amount,

@@ -6,6 +6,8 @@ import { AppError } from "../../utils/app-error";
 import { generateToken, verifyToken } from "../../utils/jwt";
 import { AuditService } from "../audit/audit.service";
 import { IAuthUser } from "../../types/express";
+import { AUDIT_ACTIONS, AUDIT_RESOURCES } from "../../constants/audit-events";
+import { HTTP_STATUS } from "../../constants/status-codes";
 
 const googleClient = new OAuth2Client(config.google.clientId);
 
@@ -24,7 +26,7 @@ const registerUser = async (payload: IRegisterInput, ipAddress?: string) => {
   });
 
   if (existingUser) {
-    throw new AppError(409, "An account with this email address already exists");
+    throw new AppError(HTTP_STATUS.CONFLICT, "An account with this email address already exists");
   }
 
   const salt = await bcrypt.genSalt(10);
@@ -60,8 +62,8 @@ const registerUser = async (payload: IRegisterInput, ipAddress?: string) => {
 
   await AuditService.createAuditLog({
     userId: newUser.id,
-    action: "USER_REGISTERED",
-    resource: "User",
+    action: AUDIT_ACTIONS.USER_REGISTERED,
+    resource: AUDIT_RESOURCES.USER,
     details: { email: newUser.email, role: newUser.role, studentId },
     ipAddress,
   });
@@ -77,20 +79,23 @@ const loginUser = async (payload: { email: string; password: string }, ipAddress
   });
 
   if (!user) {
-    throw new AppError(401, "Invalid email or password");
+    throw new AppError(HTTP_STATUS.UNAUTHORIZED, "Invalid email or password");
   }
 
   if (user.isDeleted) {
-    throw new AppError(403, "Your account has been deactivated");
+    throw new AppError(HTTP_STATUS.FORBIDDEN, "Your account has been deactivated");
   }
 
   if (user.status !== "ACTIVE") {
-    throw new AppError(403, `Account access restricted: Account is ${user.status.toLowerCase()}`);
+    throw new AppError(
+      HTTP_STATUS.FORBIDDEN,
+      `Account access restricted: Account is ${user.status.toLowerCase()}`
+    );
   }
 
   const isPasswordValid = await bcrypt.compare(payload.password, user.password);
   if (!isPasswordValid) {
-    throw new AppError(401, "Invalid email or password");
+    throw new AppError(HTTP_STATUS.UNAUTHORIZED, "Invalid email or password");
   }
 
   const tokenPayload = {
@@ -115,8 +120,8 @@ const loginUser = async (payload: { email: string; password: string }, ipAddress
 
   await AuditService.createAuditLog({
     userId: user.id,
-    action: "USER_LOGIN_SUCCESS",
-    resource: "Auth",
+    action: AUDIT_ACTIONS.USER_LOGIN_SUCCESS,
+    resource: AUDIT_RESOURCES.AUTH,
     details: { email: user.email, role: user.role },
     ipAddress,
   });
@@ -159,15 +164,15 @@ const googleLogin = async (idToken: string, ipAddress?: string) => {
         firstName = parsed.given_name || "Dev";
         lastName = parsed.family_name || "User";
       } catch {
-        throw new AppError(400, "Invalid Google ID token provided");
+        throw new AppError(HTTP_STATUS.BAD_REQUEST, "Invalid Google ID token provided");
       }
     } else {
-      throw new AppError(400, "Google authentication verification failed");
+      throw new AppError(HTTP_STATUS.BAD_REQUEST, "Google authentication verification failed");
     }
   }
 
   if (!googleEmail) {
-    throw new AppError(400, "Unable to extract email from Google token");
+    throw new AppError(HTTP_STATUS.BAD_REQUEST, "Unable to extract email from Google token");
   }
 
   let user = await prisma.user.findFirst({
@@ -231,8 +236,8 @@ const googleLogin = async (idToken: string, ipAddress?: string) => {
 
   await AuditService.createAuditLog({
     userId: user.id,
-    action: "USER_GOOGLE_LOGIN_SUCCESS",
-    resource: "Auth",
+    action: AUDIT_ACTIONS.USER_GOOGLE_LOGIN_SUCCESS,
+    resource: AUDIT_RESOURCES.AUTH,
     details: { email: user.email, role: user.role },
     ipAddress,
   });
@@ -255,7 +260,7 @@ const refreshToken = async (token: string) => {
   });
 
   if (!user || user.isDeleted || user.status !== "ACTIVE") {
-    throw new AppError(401, "Invalid refresh token or inactive user");
+    throw new AppError(HTTP_STATUS.UNAUTHORIZED, "Invalid refresh token or inactive user");
   }
 
   const tokenPayload = {
@@ -283,12 +288,12 @@ const changePassword = async (
   const user = await prisma.user.findUnique({ where: { id: userId } });
 
   if (!user) {
-    throw new AppError(404, "User not found");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "User not found");
   }
 
   const isOldMatch = await bcrypt.compare(payload.oldPassword, user.password);
   if (!isOldMatch) {
-    throw new AppError(400, "Current password does not match");
+    throw new AppError(HTTP_STATUS.BAD_REQUEST, "Current password does not match");
   }
 
   const salt = await bcrypt.genSalt(10);
@@ -301,8 +306,8 @@ const changePassword = async (
 
   await AuditService.createAuditLog({
     userId,
-    action: "PASSWORD_CHANGED",
-    resource: "User",
+    action: AUDIT_ACTIONS.PASSWORD_CHANGED,
+    resource: AUDIT_RESOURCES.USER,
     details: "User password updated successfully",
     ipAddress,
   });

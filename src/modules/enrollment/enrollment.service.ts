@@ -2,6 +2,8 @@ import prisma from "../../lib/prisma";
 import { AppError } from "../../utils/app-error";
 import { AuditService } from "../audit/audit.service";
 import { appCache } from "../../utils/cache";
+import { AUDIT_ACTIONS, AUDIT_RESOURCES } from "../../constants/audit-events";
+import { HTTP_STATUS } from "../../constants/status-codes";
 
 const MAX_CREDITS_PER_SEMESTER = 15;
 const COST_PER_CREDIT = 500.0;
@@ -28,20 +30,20 @@ const registerCourse = async (studentId: string, sectionId: string) => {
     });
 
     if (!section || section.isDeleted) {
-      throw new AppError(404, "Course section not found");
+      throw new AppError(HTTP_STATUS.NOT_FOUND, "Course section not found");
     }
 
     const { offering } = section;
     const { course, semester } = offering;
 
     if (offering.isDeleted || course.isDeleted || semester.isDeleted) {
-      throw new AppError(400, "This course offering is no longer available");
+      throw new AppError(HTTP_STATUS.BAD_REQUEST, "This course offering is no longer available");
     }
 
     // 2. Validate Semester Registration Window
     if (!semester.isRegistrationOpen) {
       throw new AppError(
-        400,
+        HTTP_STATUS.BAD_REQUEST,
         `Course registration is currently closed for semester ${semester.name}`
       );
     }
@@ -49,7 +51,7 @@ const registerCourse = async (studentId: string, sectionId: string) => {
     // 3. Concurrency Check: Capacity
     if (section.enrolledCount >= section.capacity) {
       throw new AppError(
-        400,
+        HTTP_STATUS.BAD_REQUEST,
         `Section ${section.sectionNumber} is full. Capacity of ${section.capacity} reached.`
       );
     }
@@ -64,7 +66,7 @@ const registerCourse = async (studentId: string, sectionId: string) => {
     });
 
     if (existingEnrollment) {
-      throw new AppError(400, "You are already enrolled in this section");
+      throw new AppError(HTTP_STATUS.BAD_REQUEST, "You are already enrolled in this section");
     }
 
     // Check if enrolled in another section of the same course in this semester
@@ -86,7 +88,7 @@ const registerCourse = async (studentId: string, sectionId: string) => {
 
     if (enrolledInSameCourse) {
       throw new AppError(
-        400,
+        HTTP_STATUS.BAD_REQUEST,
         `You are already enrolled in Section ${enrolledInSameCourse.section.sectionNumber} of this course for this semester`
       );
     }
@@ -120,7 +122,7 @@ const registerCourse = async (studentId: string, sectionId: string) => {
 
     if (currentTotalCredits + course.credits > MAX_CREDITS_PER_SEMESTER) {
       throw new AppError(
-        400,
+        HTTP_STATUS.BAD_REQUEST,
         `Credit limit exceeded. Enrolling in ${course.code} (${course.credits} cr) would total ${
           currentTotalCredits + course.credits
         } credits. Max allowed is ${MAX_CREDITS_PER_SEMESTER} credits.`
@@ -147,7 +149,7 @@ const registerCourse = async (studentId: string, sectionId: string) => {
 
         if (!completedPrereq) {
           throw new AppError(
-            400,
+            HTTP_STATUS.BAD_REQUEST,
             `Prerequisite not fulfilled: You must complete ${req.prerequisite.code} (${req.prerequisite.title}) before registering for ${course.code}`
           );
         }
@@ -218,8 +220,8 @@ const registerCourse = async (studentId: string, sectionId: string) => {
 
     await AuditService.createAuditLog({
       userId: studentId,
-      action: "COURSE_REGISTERED",
-      resource: "StudentEnrollment",
+      action: AUDIT_ACTIONS.COURSE_REGISTERED,
+      resource: AUDIT_RESOURCES.STUDENT_ENROLLMENT,
       details: {
         sectionId,
         courseCode: course.code,
@@ -257,7 +259,7 @@ const withdrawCourse = async (studentId: string, sectionId: string) => {
     });
 
     if (!enrollment) {
-      throw new AppError(404, "Active course enrollment not found");
+      throw new AppError(HTTP_STATUS.NOT_FOUND, "Active course enrollment not found");
     }
 
     const { section } = enrollment;
@@ -305,8 +307,8 @@ const withdrawCourse = async (studentId: string, sectionId: string) => {
 
     await AuditService.createAuditLog({
       userId: studentId,
-      action: "COURSE_WITHDRAWN",
-      resource: "StudentEnrollment",
+      action: AUDIT_ACTIONS.COURSE_WITHDRAWN,
+      resource: AUDIT_RESOURCES.STUDENT_ENROLLMENT,
       details: {
         sectionId,
         courseCode: course.code,
@@ -397,7 +399,7 @@ const getSectionRoster = async (sectionId: string) => {
   });
 
   if (!section || section.isDeleted) {
-    throw new AppError(404, "Section not found");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "Section not found");
   }
 
   return section;

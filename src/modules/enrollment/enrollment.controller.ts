@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import { catchAsync } from "../../utils/catch-async";
 import { sendResponse } from "../../utils/send-response";
 import { EnrollmentService } from "./enrollment.service";
+import { HTTP_STATUS } from "../../constants/status-codes";
+import { RESPONSE_MESSAGES } from "../../constants/response-messages";
 
 const registerCourse = catchAsync(async (req: Request, res: Response) => {
   const result = await EnrollmentService.registerCourse(
@@ -10,9 +12,9 @@ const registerCourse = catchAsync(async (req: Request, res: Response) => {
   );
 
   sendResponse(res, {
-    statusCode: 201,
+    statusCode: HTTP_STATUS.CREATED,
     success: true,
-    message: "Course registered successfully",
+    message: RESPONSE_MESSAGES.COURSE_REGISTER_SUCCESS,
     data: result,
   });
 });
@@ -24,9 +26,9 @@ const withdrawCourse = catchAsync(async (req: Request, res: Response) => {
   );
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Course withdrawn successfully",
+    message: RESPONSE_MESSAGES.COURSE_WITHDRAW_SUCCESS,
     data: result,
   });
 });
@@ -38,9 +40,9 @@ const getMyEnrolledCourses = catchAsync(async (req: Request, res: Response) => {
   );
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Enrolled courses retrieved successfully",
+    message: RESPONSE_MESSAGES.MY_COURSES_FETCH_SUCCESS,
     data: result,
   });
 });
@@ -51,9 +53,9 @@ const getSectionRoster = catchAsync(async (req: Request, res: Response) => {
   );
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Section student roster retrieved successfully",
+    message: RESPONSE_MESSAGES.SECTION_ROSTER_FETCH_SUCCESS,
     data: result,
   });
 });

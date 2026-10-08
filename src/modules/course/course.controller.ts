@@ -2,14 +2,16 @@ import { Request, Response } from "express";
 import { catchAsync } from "../../utils/catch-async";
 import { sendResponse } from "../../utils/send-response";
 import { CourseService } from "./course.service";
+import { HTTP_STATUS } from "../../constants/status-codes";
+import { RESPONSE_MESSAGES } from "../../constants/response-messages";
 
 const createCourse = catchAsync(async (req: Request, res: Response) => {
   const result = await CourseService.createCourse(req.user!.id, req.body);
 
   sendResponse(res, {
-    statusCode: 201,
+    statusCode: HTTP_STATUS.CREATED,
     success: true,
-    message: "Course created successfully with prerequisites",
+    message: RESPONSE_MESSAGES.COURSE_CREATE_SUCCESS,
     data: result,
   });
 });
@@ -21,9 +23,9 @@ const getAllCourses = catchAsync(async (req: Request, res: Response) => {
   });
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Courses retrieved successfully",
+    message: RESPONSE_MESSAGES.COURSES_FETCH_SUCCESS,
     meta: result.meta,
     data: result.data,
   });
@@ -33,9 +35,9 @@ const getCourseById = catchAsync(async (req: Request, res: Response) => {
   const result = await CourseService.getCourseById(req.params.id as string);
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Course details retrieved successfully",
+    message: RESPONSE_MESSAGES.COURSE_FETCH_SUCCESS,
     data: result,
   });
 });
@@ -48,9 +50,9 @@ const updateCourse = catchAsync(async (req: Request, res: Response) => {
   );
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Course updated successfully",
+    message: RESPONSE_MESSAGES.COURSE_UPDATE_SUCCESS,
     data: result,
   });
 });
@@ -62,9 +64,9 @@ const softDeleteCourse = catchAsync(async (req: Request, res: Response) => {
   );
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Course soft-deleted successfully",
+    message: RESPONSE_MESSAGES.COURSE_DELETE_SUCCESS,
     data: result,
   });
 });

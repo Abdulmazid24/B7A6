@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import { catchAsync } from "../../utils/catch-async";
 import { sendResponse } from "../../utils/send-response";
 import { PaymentService } from "./payment.service";
+import { HTTP_STATUS } from "../../constants/status-codes";
+import { RESPONSE_MESSAGES } from "../../constants/response-messages";
 
 const createCheckoutSession = catchAsync(async (req: Request, res: Response) => {
   const result = await PaymentService.createCheckoutSession(
@@ -10,9 +12,9 @@ const createCheckoutSession = catchAsync(async (req: Request, res: Response) => 
   );
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Stripe checkout session created successfully",
+    message: RESPONSE_MESSAGES.CHECKOUT_SESSION_CREATE_SUCCESS,
     data: result,
   });
 });
@@ -21,7 +23,7 @@ const handleWebhook = catchAsync(async (req: Request, res: Response) => {
   const signature = req.headers["stripe-signature"] as string;
   const result = await PaymentService.handleWebhook(req.body, signature);
 
-  res.status(200).json(result);
+  res.status(HTTP_STATUS.OK).json(result);
 });
 
 const verifyPayment = catchAsync(async (req: Request, res: Response) => {
@@ -29,9 +31,9 @@ const verifyPayment = catchAsync(async (req: Request, res: Response) => {
   const result = await PaymentService.verifyPaymentSession(sessionId);
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Payment status verified successfully",
+    message: RESPONSE_MESSAGES.PAYMENT_VERIFY_SUCCESS,
     data: result,
   });
 });
@@ -40,9 +42,9 @@ const getMyInvoices = catchAsync(async (req: Request, res: Response) => {
   const result = await PaymentService.getMyInvoices(req.user!.id);
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Student tuition invoices and receipts retrieved successfully",
+    message: RESPONSE_MESSAGES.INVOICES_FETCH_SUCCESS,
     data: result,
   });
 });
@@ -54,9 +56,9 @@ const getAllPayments = catchAsync(async (req: Request, res: Response) => {
   });
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "All university payments retrieved successfully",
+    message: RESPONSE_MESSAGES.PAYMENTS_FETCH_SUCCESS,
     meta: result.meta,
     data: result.data,
   });

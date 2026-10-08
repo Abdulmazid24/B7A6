@@ -3,14 +3,16 @@ import { catchAsync } from "../../utils/catch-async";
 import { sendResponse } from "../../utils/send-response";
 import { AuthService } from "./auth.service";
 import { config } from "../../config";
+import { HTTP_STATUS } from "../../constants/status-codes";
+import { RESPONSE_MESSAGES } from "../../constants/response-messages";
 
 const register = catchAsync(async (req: Request, res: Response) => {
   const result = await AuthService.registerUser(req.body, req.ip);
 
   sendResponse(res, {
-    statusCode: 201,
+    statusCode: HTTP_STATUS.CREATED,
     success: true,
-    message: "User registered successfully",
+    message: RESPONSE_MESSAGES.REGISTER_SUCCESS,
     data: result,
   });
 });
@@ -27,9 +29,9 @@ const login = catchAsync(async (req: Request, res: Response) => {
   });
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "User logged in successfully",
+    message: RESPONSE_MESSAGES.LOGIN_SUCCESS,
     data: {
       accessToken: result.accessToken,
       user: result.user,
@@ -48,9 +50,9 @@ const googleLogin = catchAsync(async (req: Request, res: Response) => {
   });
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Google login successful",
+    message: RESPONSE_MESSAGES.GOOGLE_LOGIN_SUCCESS,
     data: {
       accessToken: result.accessToken,
       user: result.user,
@@ -63,9 +65,9 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
   const result = await AuthService.refreshToken(token);
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Access token refreshed successfully",
+    message: RESPONSE_MESSAGES.TOKEN_REFRESH_SUCCESS,
     data: result,
   });
 });
@@ -74,9 +76,9 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
   const result = await AuthService.changePassword(req.user!.id, req.body, req.ip);
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Password changed successfully",
+    message: RESPONSE_MESSAGES.PASSWORD_CHANGE_SUCCESS,
     data: result,
   });
 });
@@ -85,9 +87,9 @@ const logout = catchAsync(async (_req: Request, res: Response) => {
   res.clearCookie("refreshToken");
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Logged out successfully",
+    message: RESPONSE_MESSAGES.LOGOUT_SUCCESS,
     data: null,
   });
 });

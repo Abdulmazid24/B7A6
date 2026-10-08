@@ -2,14 +2,16 @@ import { Request, Response } from "express";
 import { catchAsync } from "../../utils/catch-async";
 import { sendResponse } from "../../utils/send-response";
 import { UserService } from "./user.service";
+import { HTTP_STATUS } from "../../constants/status-codes";
+import { RESPONSE_MESSAGES } from "../../constants/response-messages";
 
 const getMyProfile = catchAsync(async (req: Request, res: Response) => {
   const result = await UserService.getMyProfile(req.user!.id);
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Profile retrieved successfully",
+    message: RESPONSE_MESSAGES.PROFILE_FETCH_SUCCESS,
     data: result,
   });
 });
@@ -18,9 +20,9 @@ const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
   const result = await UserService.updateMyProfile(req.user!.id, req.body);
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Profile updated successfully",
+    message: RESPONSE_MESSAGES.PROFILE_UPDATE_SUCCESS,
     data: result,
   });
 });
@@ -34,9 +36,9 @@ const getAllUsers = catchAsync(async (req: Request, res: Response) => {
   });
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Users retrieved successfully",
+    message: RESPONSE_MESSAGES.USERS_FETCH_SUCCESS,
     meta: result.meta,
     data: result.data,
   });
@@ -50,9 +52,9 @@ const updateUserRoleStatus = catchAsync(async (req: Request, res: Response) => {
   );
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "User role/status updated successfully",
+    message: RESPONSE_MESSAGES.USER_ROLE_STATUS_UPDATE_SUCCESS,
     data: result,
   });
 });
@@ -61,9 +63,9 @@ const softDeleteUser = catchAsync(async (req: Request, res: Response) => {
   const result = await UserService.softDeleteUser(req.user!.id, req.params.id as string);
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "User account deactivated successfully",
+    message: RESPONSE_MESSAGES.USER_DELETE_SUCCESS,
     data: result,
   });
 });

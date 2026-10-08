@@ -1,10 +1,11 @@
 import prisma from "../../lib/prisma";
 import { appCache } from "../../utils/cache";
+import { IAdminDashboardResponse } from "./admin.interface";
 
 const CACHE_KEY = "ADMIN_DASHBOARD_STATS";
 
-const getDashboardStats = async () => {
-  const cached = appCache.get(CACHE_KEY);
+const getDashboardStats = async (): Promise<IAdminDashboardResponse> => {
+  const cached = appCache.get<IAdminDashboardResponse>(CACHE_KEY);
   if (cached) {
     return cached;
   }
@@ -81,7 +82,7 @@ const getDashboardStats = async () => {
 
   const totalOutstandingDue = dueFeesAgg._sum.dueAmount || 0;
 
-  return {
+  const result = {
     overview: {
       totalStudents,
       totalFaculty,

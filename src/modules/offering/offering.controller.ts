@@ -2,14 +2,16 @@ import { Request, Response } from "express";
 import { catchAsync } from "../../utils/catch-async";
 import { sendResponse } from "../../utils/send-response";
 import { OfferingService } from "./offering.service";
+import { HTTP_STATUS } from "../../constants/status-codes";
+import { RESPONSE_MESSAGES } from "../../constants/response-messages";
 
 const createOffering = catchAsync(async (req: Request, res: Response) => {
   const result = await OfferingService.createOffering(req.user!.id, req.body);
 
   sendResponse(res, {
-    statusCode: 201,
+    statusCode: HTTP_STATUS.CREATED,
     success: true,
-    message: "Course offering created successfully",
+    message: RESPONSE_MESSAGES.OFFERING_CREATE_SUCCESS,
     data: result,
   });
 });
@@ -22,9 +24,9 @@ const addSection = catchAsync(async (req: Request, res: Response) => {
   );
 
   sendResponse(res, {
-    statusCode: 201,
+    statusCode: HTTP_STATUS.CREATED,
     success: true,
-    message: "Section added to offering successfully",
+    message: RESPONSE_MESSAGES.SECTION_CREATE_SUCCESS,
     data: result,
   });
 });
@@ -38,9 +40,9 @@ const getAllOfferings = catchAsync(async (req: Request, res: Response) => {
   });
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Course offerings retrieved successfully",
+    message: RESPONSE_MESSAGES.OFFERINGS_FETCH_SUCCESS,
     meta: result.meta,
     data: result.data,
   });
@@ -50,9 +52,9 @@ const getOfferingById = catchAsync(async (req: Request, res: Response) => {
   const result = await OfferingService.getOfferingById(req.params.id as string);
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Offering details retrieved successfully",
+    message: RESPONSE_MESSAGES.OFFERING_FETCH_SUCCESS,
     data: result,
   });
 });
@@ -65,9 +67,9 @@ const updateSection = catchAsync(async (req: Request, res: Response) => {
   );
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Section updated successfully",
+    message: RESPONSE_MESSAGES.SECTION_UPDATE_SUCCESS,
     data: result,
   });
 });
@@ -79,9 +81,9 @@ const softDeleteOffering = catchAsync(async (req: Request, res: Response) => {
   );
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Course offering deleted successfully",
+    message: RESPONSE_MESSAGES.OFFERING_DELETE_SUCCESS,
     data: result,
   });
 });

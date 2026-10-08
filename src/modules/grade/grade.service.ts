@@ -2,6 +2,8 @@ import prisma from "../../lib/prisma";
 import { AppError } from "../../utils/app-error";
 import { AuditService } from "../audit/audit.service";
 import { IAuthUser } from "../../types/express";
+import { AUDIT_ACTIONS, AUDIT_RESOURCES } from "../../constants/audit-events";
+import { HTTP_STATUS } from "../../constants/status-codes";
 
 export const computeGrade = (totalMarks: number): { letterGrade: string; gradePoint: number } => {
   if (totalMarks >= 80) return { letterGrade: "A+", gradePoint: 4.0 };
@@ -40,12 +42,15 @@ const submitGrade = async (user: IAuthUser, payload: ISubmitGradeInput) => {
   });
 
   if (!enrollment) {
-    throw new AppError(404, "Student enrollment not found");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "Student enrollment not found");
   }
 
   // Permission Check: Faculty can only grade sections they teach
   if (user.role === "FACULTY" && enrollment.section.facultyId !== user.id) {
-    throw new AppError(403, "You can only submit grades for your assigned course sections");
+    throw new AppError(
+      HTTP_STATUS.FORBIDDEN,
+      "You can only submit grades for your assigned course sections"
+    );
   }
 
   const existingGrade = await prisma.studentGrade.findUnique({
@@ -113,8 +118,8 @@ const submitGrade = async (user: IAuthUser, payload: ISubmitGradeInput) => {
 
   await AuditService.createAuditLog({
     userId: user.id,
-    action: "GRADE_SUBMITTED",
-    resource: "StudentGrade",
+    action: AUDIT_ACTIONS.GRADE_SUBMITTED,
+    resource: AUDIT_RESOURCES.STUDENT_GRADE,
     details: {
       enrollmentId: payload.enrollmentId,
       studentEmail: enrollment.student.email,
@@ -140,11 +145,14 @@ const getSectionGrades = async (user: IAuthUser, sectionId: string) => {
   });
 
   if (!section) {
-    throw new AppError(404, "Course section not found");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "Course section not found");
   }
 
   if (user.role === "FACULTY" && section.facultyId !== user.id) {
-    throw new AppError(403, "You can only view grades for your assigned course sections");
+    throw new AppError(
+      HTTP_STATUS.FORBIDDEN,
+      "You can only view grades for your assigned course sections"
+    );
   }
 
   const grades = await prisma.studentGrade.findMany({

@@ -1,19 +1,16 @@
 import prisma from "../../lib/prisma";
 import { AppError } from "../../utils/app-error";
-import { IPaginationOptions, calculatePagination } from "../../utils/pagination";
+import { IPaginationOptions } from "../../utils/pagination";
+import { buildPrismaQuery } from "../../utils/query-builder";
 import { AuditService } from "../audit/audit.service";
+import { AUDIT_ACTIONS, AUDIT_RESOURCES } from "../../constants/audit-events";
+import {
+  ICreateSemesterPayload,
+  ISemesterFilterParams,
+  IUpdateSemesterPayload,
+} from "./semester.interface";
 
-interface ICreateSemesterInput {
-  name: string;
-  code: string;
-  year: number;
-  startDate: string;
-  endDate: string;
-  isCurrent?: boolean;
-  isRegistrationOpen?: boolean;
-}
-
-const createSemester = async (adminId: string, payload: ICreateSemesterInput) => {
+const createSemester = async (adminId: string, payload: ICreateSemesterPayload) => {
   const existing = await prisma.academicSemester.findUnique({
     where: { code: payload.code.toUpperCase() },
   });
@@ -45,8 +42,8 @@ const createSemester = async (adminId: string, payload: ICreateSemesterInput) =>
 
   await AuditService.createAuditLog({
     userId: adminId,
-    action: "SEMESTER_CREATED",
-    resource: "AcademicSemester",
+    action: AUDIT_ACTIONS.SEMESTER_CREATED,
+    resource: AUDIT_RESOURCES.ACADEMIC_SEMESTER,
     details: { code: result.code, name: result.name, year: result.year },
   });
 
@@ -55,35 +52,19 @@ const createSemester = async (adminId: string, payload: ICreateSemesterInput) =>
 
 const getAllSemesters = async (
   options: IPaginationOptions,
-  filters: { isCurrent?: boolean; year?: number; search?: string }
+  filters: ISemesterFilterParams
 ) => {
-  const { page, limit, skip, sortBy, sortOrder } = calculatePagination(options);
-
-  const where: any = {
-    isDeleted: false,
-  };
-
-  if (filters.isCurrent !== undefined) {
-    where.isCurrent = filters.isCurrent;
-  }
-
-  if (filters.year) {
-    where.year = filters.year;
-  }
-
-  if (filters.search) {
-    where.OR = [
-      { name: { contains: filters.search, mode: "insensitive" } },
-      { code: { contains: filters.search, mode: "insensitive" } },
-    ];
-  }
+  const query = buildPrismaQuery(options, filters, {
+    searchableFields: ["name", "code"],
+    exactFilterFields: ["isCurrent", "year"],
+  });
 
   const [data, total] = await Promise.all([
     prisma.academicSemester.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { [sortBy]: sortOrder },
+      where: query.where,
+      skip: query.skip,
+      take: query.take,
+      orderBy: query.orderBy,
       include: {
         _count: {
           select: {
@@ -93,16 +74,11 @@ const getAllSemesters = async (
         },
       },
     }),
-    prisma.academicSemester.count({ where }),
+    prisma.academicSemester.count({ where: query.where }),
   ]);
 
   return {
-    meta: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
+    meta: query.meta(total),
     data,
   };
 };
@@ -189,8 +165,8 @@ const updateSemester = async (
 
   await AuditService.createAuditLog({
     userId: adminId,
-    action: "SEMESTER_UPDATED",
-    resource: "AcademicSemester",
+    action: AUDIT_ACTIONS.SEMESTER_UPDATED,
+    resource: AUDIT_RESOURCES.ACADEMIC_SEMESTER,
     details: { id, changes: payload },
   });
 
@@ -228,8 +204,8 @@ const softDeleteSemester = async (adminId: string, id: string) => {
 
   await AuditService.createAuditLog({
     userId: adminId,
-    action: "SEMESTER_SOFT_DELETED",
-    resource: "AcademicSemester",
+    action: AUDIT_ACTIONS.SEMESTER_SOFT_DELETED,
+    resource: AUDIT_RESOURCES.ACADEMIC_SEMESTER,
     details: { id, code: semester.code },
   });
 

@@ -1,14 +1,6 @@
 import prisma from "../../lib/prisma";
 import { IPaginationOptions, calculatePagination } from "../../utils/pagination";
-
-export interface ICreateAuditLogInput {
-  userId?: string | null;
-  action: string;
-  resource: string;
-  details?: string | Record<string, unknown> | null;
-  ipAddress?: string | null;
-  userAgent?: string | null;
-}
+import { ICreateAuditLogInput, IAuditLogFilterParams } from "./audit.interface";
 
 const createAuditLog = async (data: ICreateAuditLogInput) => {
   try {
@@ -35,7 +27,7 @@ const createAuditLog = async (data: ICreateAuditLogInput) => {
 
 const getAllAuditLogs = async (
   options: IPaginationOptions,
-  filters: { action?: string; resource?: string; userId?: string }
+  filters: IAuditLogFilterParams
 ) => {
   const { page, limit, skip, sortBy, sortOrder } = calculatePagination(options);
 

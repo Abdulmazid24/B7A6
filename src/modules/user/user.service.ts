@@ -2,6 +2,8 @@ import prisma from "../../lib/prisma";
 import { AppError } from "../../utils/app-error";
 import { IPaginationOptions, calculatePagination } from "../../utils/pagination";
 import { AuditService } from "../audit/audit.service";
+import { AUDIT_ACTIONS, AUDIT_RESOURCES } from "../../constants/audit-events";
+import { HTTP_STATUS } from "../../constants/status-codes";
 
 const getMyProfile = async (userId: string) => {
   const user = await prisma.user.findUnique({
@@ -16,7 +18,7 @@ const getMyProfile = async (userId: string) => {
   });
 
   if (!user || user.isDeleted) {
-    throw new AppError(404, "User profile not found");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "User profile not found");
   }
 
   const { password: _, ...userWithoutPassword } = user;
@@ -30,7 +32,7 @@ const updateMyProfile = async (userId: string, payload: any) => {
   });
 
   if (!user || user.isDeleted) {
-    throw new AppError(404, "User profile not found");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "User profile not found");
   }
 
   const updatedProfile = await prisma.profile.update({
@@ -51,8 +53,8 @@ const updateMyProfile = async (userId: string, payload: any) => {
 
   await AuditService.createAuditLog({
     userId,
-    action: "PROFILE_UPDATED",
-    resource: "Profile",
+    action: AUDIT_ACTIONS.PROFILE_UPDATED,
+    resource: AUDIT_RESOURCES.PROFILE,
     details: "User updated their personal profile information",
   });
 
@@ -137,11 +139,11 @@ const updateUserRoleStatus = async (
   const targetUser = await prisma.user.findUnique({ where: { id: targetUserId } });
 
   if (!targetUser || targetUser.isDeleted) {
-    throw new AppError(404, "Target user not found");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "Target user not found");
   }
 
   if (targetUser.id === adminId && payload.role && payload.role !== "ADMIN") {
-    throw new AppError(400, "Administrators cannot demote their own admin role");
+    throw new AppError(HTTP_STATUS.BAD_REQUEST, "Administrators cannot demote their own admin role");
   }
 
   const updatedUser = await prisma.user.update({
@@ -162,8 +164,8 @@ const updateUserRoleStatus = async (
 
   await AuditService.createAuditLog({
     userId: adminId,
-    action: "USER_ROLE_STATUS_UPDATED",
-    resource: "User",
+    action: AUDIT_ACTIONS.USER_ROLE_STATUS_UPDATED,
+    resource: AUDIT_RESOURCES.USER,
     details: {
       targetUserId,
       targetEmail: targetUser.email,
@@ -181,11 +183,11 @@ const softDeleteUser = async (adminId: string, targetUserId: string) => {
   const targetUser = await prisma.user.findUnique({ where: { id: targetUserId } });
 
   if (!targetUser || targetUser.isDeleted) {
-    throw new AppError(404, "User not found or already deleted");
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "User not found or already deleted");
   }
 
   if (targetUser.id === adminId) {
-    throw new AppError(400, "Administrators cannot delete their own account");
+    throw new AppError(HTTP_STATUS.BAD_REQUEST, "Administrators cannot delete their own account");
   }
 
   await prisma.user.update({
@@ -198,8 +200,8 @@ const softDeleteUser = async (adminId: string, targetUserId: string) => {
 
   await AuditService.createAuditLog({
     userId: adminId,
-    action: "USER_SOFT_DELETED",
-    resource: "User",
+    action: AUDIT_ACTIONS.USER_SOFT_DELETED,
+    resource: AUDIT_RESOURCES.USER,
     details: { targetUserId, targetEmail: targetUser.email },
   });
 

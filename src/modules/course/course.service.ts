@@ -1,18 +1,16 @@
 import prisma from "../../lib/prisma";
 import { AppError } from "../../utils/app-error";
-import { IPaginationOptions, calculatePagination } from "../../utils/pagination";
+import { IPaginationOptions } from "../../utils/pagination";
+import { buildPrismaQuery } from "../../utils/query-builder";
 import { AuditService } from "../audit/audit.service";
+import { AUDIT_ACTIONS, AUDIT_RESOURCES } from "../../constants/audit-events";
+import {
+  ICreateCoursePayload,
+  ICourseFilterParams,
+  IUpdateCoursePayload,
+} from "./course.interface";
 
-interface ICreateCourseInput {
-  code: string;
-  title: string;
-  credits: number;
-  description?: string;
-  departmentId: string;
-  prerequisiteIds?: string[];
-}
-
-const createCourse = async (adminId: string, payload: ICreateCourseInput) => {
+const createCourse = async (adminId: string, payload: ICreateCoursePayload) => {
   const existing = await prisma.course.findUnique({
     where: { code: payload.code.toUpperCase() },
   });
@@ -67,8 +65,8 @@ const createCourse = async (adminId: string, payload: ICreateCourseInput) => {
 
   await AuditService.createAuditLog({
     userId: adminId,
-    action: "COURSE_CREATED",
-    resource: "Course",
+    action: AUDIT_ACTIONS.COURSE_CREATED,
+    resource: AUDIT_RESOURCES.COURSE,
     details: { code: course?.code, title: course?.title, credits: course?.credits },
   });
 
@@ -77,31 +75,19 @@ const createCourse = async (adminId: string, payload: ICreateCourseInput) => {
 
 const getAllCourses = async (
   options: IPaginationOptions,
-  filters: { departmentId?: string; search?: string }
+  filters: ICourseFilterParams
 ) => {
-  const { page, limit, skip, sortBy, sortOrder } = calculatePagination(options);
-
-  const where: any = {
-    isDeleted: false,
-  };
-
-  if (filters.departmentId) {
-    where.departmentId = filters.departmentId;
-  }
-
-  if (filters.search) {
-    where.OR = [
-      { code: { contains: filters.search, mode: "insensitive" } },
-      { title: { contains: filters.search, mode: "insensitive" } },
-    ];
-  }
+  const query = buildPrismaQuery(options, filters, {
+    searchableFields: ["code", "title"],
+    exactFilterFields: ["departmentId"],
+  });
 
   const [data, total] = await Promise.all([
     prisma.course.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { [sortBy]: sortOrder },
+      where: query.where,
+      skip: query.skip,
+      take: query.take,
+      orderBy: query.orderBy,
       include: {
         department: {
           select: {
@@ -124,16 +110,11 @@ const getAllCourses = async (
         },
       },
     }),
-    prisma.course.count({ where }),
+    prisma.course.count({ where: query.where }),
   ]);
 
   return {
-    meta: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
+    meta: query.meta(total),
     data,
   };
 };
@@ -236,8 +217,8 @@ const updateCourse = async (
 
   await AuditService.createAuditLog({
     userId: adminId,
-    action: "COURSE_UPDATED",
-    resource: "Course",
+    action: AUDIT_ACTIONS.COURSE_UPDATED,
+    resource: AUDIT_RESOURCES.COURSE,
     details: { id, changes: payload },
   });
 
@@ -275,8 +256,8 @@ const softDeleteCourse = async (adminId: string, id: string) => {
 
   await AuditService.createAuditLog({
     userId: adminId,
-    action: "COURSE_SOFT_DELETED",
-    resource: "Course",
+    action: AUDIT_ACTIONS.COURSE_SOFT_DELETED,
+    resource: AUDIT_RESOURCES.COURSE,
     details: { id, code: course.code },
   });
 

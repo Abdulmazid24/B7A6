@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import { catchAsync } from "../../utils/catch-async";
 import { sendResponse } from "../../utils/send-response";
 import { AuditService } from "./audit.service";
+import { HTTP_STATUS } from "../../constants/status-codes";
+import { RESPONSE_MESSAGES } from "../../constants/response-messages";
 
 const getAllAuditLogs = catchAsync(async (req: Request, res: Response) => {
   const result = await AuditService.getAllAuditLogs(req.query, {
@@ -11,9 +13,9 @@ const getAllAuditLogs = catchAsync(async (req: Request, res: Response) => {
   });
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: HTTP_STATUS.OK,
     success: true,
-    message: "Audit logs retrieved successfully",
+    message: RESPONSE_MESSAGES.AUDIT_LOGS_FETCH_SUCCESS,
     meta: result.meta,
     data: result.data,
   });
