@@ -1,0 +1,63 @@
+enum UserRole {
+  ADMIN
+  FACULTY
+  STUDENT
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  SUSPENDED
+}
+
+model User {
+  id              String      @id @default(uuid())
+  email           String      @unique
+  password        String
+  role            UserRole    @default(STUDENT)
+  status          UserStatus  @default(ACTIVE)
+  googleId        String?     @unique
+  isEmailVerified Boolean     @default(false)
+  isDeleted       Boolean     @default(false)
+  deletedAt       DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  profile             Profile?
+  studentEnrollments  StudentEnrollment[]
+  facultySections     CourseSection[]
+  gradesSubmitted     StudentGrade[]        @relation("FacultyGrades")
+  gradesReceived      StudentGrade[]        @relation("StudentGrades")
+  tuitionFees         TuitionFee[]
+  payments            Payment[]
+  auditLogs           AuditLog[]
+
+  @@index([email])
+  @@index([role])
+  @@index([isDeleted])
+  @@map("users")
+}
+
+model Profile {
+  id           String              @id @default(uuid())
+  userId       String              @unique
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName    String
+  lastName     String
+  phoneNumber  String?
+  avatar       String?
+  address      String?
+  dateOfBirth  DateTime?
+  departmentId String?
+  department   AcademicDepartment? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  studentId    String?             @unique
+  facultyId    String?             @unique
+  designation  String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([studentId])
+  @@index([facultyId])
+  @@index([departmentId])
+  @@map("profiles")
+}

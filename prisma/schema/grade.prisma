@@ -1,0 +1,25 @@
+model StudentGrade {
+  id              String            @id @default(uuid())
+  enrollmentId    String            @unique
+  enrollment      StudentEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  studentId       String
+  student         User              @relation("StudentGrades", fields: [studentId], references: [id], onDelete: Cascade)
+  sectionId       String
+  section         CourseSection     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  facultyId       String?
+  faculty         User?             @relation("FacultyGrades", fields: [facultyId], references: [id], onDelete: SetNull)
+  midtermMarks    Float?            @default(0)
+  finalMarks      Float?            @default(0)
+  assessmentMarks Float?            @default(0)
+  totalMarks      Float?            @default(0)
+  letterGrade     String?
+  gradePoint      Float?            @default(0)
+  isPublished     Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([studentId])
+  @@index([sectionId])
+  @@index([facultyId])
+  @@map("student_grades")
+}

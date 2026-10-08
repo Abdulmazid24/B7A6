@@ -1,0 +1,71 @@
+enum EnrollmentStatus {
+  ENROLLED
+  WITHDRAWN
+  COMPLETED
+  DROPPED
+}
+
+model CourseOffering {
+  id         String           @id @default(uuid())
+  courseId   String
+  course     Course           @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  semesterId String
+  semester   AcademicSemester @relation(fields: [semesterId], references: [id], onDelete: Restrict)
+  isDeleted  Boolean          @default(false)
+  deletedAt  DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  sections CourseSection[]
+
+  @@unique([courseId, semesterId])
+  @@index([courseId])
+  @@index([semesterId])
+  @@index([isDeleted])
+  @@map("course_offerings")
+}
+
+model CourseSection {
+  id            String         @id @default(uuid())
+  offeringId    String
+  offering      CourseOffering @relation(fields: [offeringId], references: [id], onDelete: Cascade)
+  sectionNumber Int
+  capacity      Int            @default(30)
+  enrolledCount Int            @default(0)
+  roomNumber    String?
+  schedule      String?
+  facultyId     String?
+  faculty       User?          @relation(fields: [facultyId], references: [id], onDelete: SetNull)
+  isDeleted     Boolean        @default(false)
+  deletedAt     DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  enrollments StudentEnrollment[]
+  grades      StudentGrade[]
+
+  @@unique([offeringId, sectionNumber])
+  @@index([offeringId])
+  @@index([facultyId])
+  @@index([isDeleted])
+  @@map("course_sections")
+}
+
+model StudentEnrollment {
+  id         String           @id @default(uuid())
+  studentId  String
+  student    User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  sectionId  String
+  section    CourseSection    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  status     EnrollmentStatus @default(ENROLLED)
+  enrolledAt DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  grade StudentGrade?
+
+  @@unique([studentId, sectionId])
+  @@index([studentId])
+  @@index([sectionId])
+  @@index([status])
+  @@map("student_enrollments")
+}

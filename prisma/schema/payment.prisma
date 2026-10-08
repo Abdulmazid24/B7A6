@@ -1,0 +1,62 @@
+enum FeeStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model TuitionFee {
+  id          String           @id @default(uuid())
+  studentId   String
+  student     User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  semesterId  String
+  semester    AcademicSemester @relation(fields: [semesterId], references: [id], onDelete: Restrict)
+  totalAmount Float
+  paidAmount  Float            @default(0)
+  dueAmount   Float
+  status      FeeStatus        @default(UNPAID)
+  dueDate     DateTime
+  isDeleted   Boolean          @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  payments Payment[]
+
+  @@unique([studentId, semesterId])
+  @@index([studentId])
+  @@index([semesterId])
+  @@index([status])
+  @@map("tuition_fees")
+}
+
+model Payment {
+  id                    String        @id @default(uuid())
+  studentId             String
+  student               User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  tuitionFeeId          String
+  tuitionFee            TuitionFee    @relation(fields: [tuitionFeeId], references: [id], onDelete: Cascade)
+  amount                Float
+  currency              String        @default("usd")
+  status                PaymentStatus @default(PENDING)
+  paymentMethod         String        @default("STRIPE")
+  stripeSessionId       String?       @unique
+  stripePaymentIntentId String?       @unique
+  transactionId         String?       @unique
+  receiptUrl            String?
+  paidAt                DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([studentId])
+  @@index([tuitionFeeId])
+  @@index([status])
+  @@map("payments")
+}

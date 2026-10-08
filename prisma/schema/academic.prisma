@@ -1,0 +1,76 @@
+model AcademicDepartment {
+  id          String    @id @default(uuid())
+  code        String    @unique
+  name        String
+  description String?
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  profiles Profile[]
+  courses  Course[]
+
+  @@index([code])
+  @@index([isDeleted])
+  @@map("academic_departments")
+}
+
+model AcademicSemester {
+  id                 String           @id @default(uuid())
+  name               String
+  code               String           @unique
+  year               Int
+  startDate          DateTime
+  endDate            DateTime
+  isCurrent          Boolean          @default(false)
+  isRegistrationOpen Boolean          @default(false)
+  isDeleted          Boolean          @default(false)
+  deletedAt          DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  offerings   CourseOffering[]
+  tuitionFees TuitionFee[]
+
+  @@index([code])
+  @@index([isCurrent])
+  @@index([isDeleted])
+  @@map("academic_semesters")
+}
+
+model Course {
+  id           String             @id @default(uuid())
+  code         String             @unique
+  title        String
+  credits      Int                @default(3)
+  description  String?
+  departmentId String
+  department   AcademicDepartment @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  isDeleted    Boolean            @default(false)
+  deletedAt    DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  prerequisites   CoursePrerequisite[] @relation("CoursePrerequisites")
+  prerequisiteFor CoursePrerequisite[] @relation("PrerequisiteForCourses")
+  offerings       CourseOffering[]
+
+  @@index([code])
+  @@index([departmentId])
+  @@index([isDeleted])
+  @@map("courses")
+}
+
+model CoursePrerequisite {
+  id             String   @id @default(uuid())
+  courseId       String
+  prerequisiteId String
+  createdAt      DateTime @default(now())
+
+  course       Course @relation("CoursePrerequisites", fields: [courseId], references: [id], onDelete: Cascade)
+  prerequisite Course @relation("PrerequisiteForCourses", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, prerequisiteId])
+  @@map("course_prerequisites")
+}
