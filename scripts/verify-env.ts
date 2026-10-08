@@ -10,6 +10,7 @@ async function verifyEnvironment() {
     { name: "JWT_ACCESS_SECRET", val: !!config.jwt.accessSecret },
     { name: "JWT_REFRESH_SECRET", val: !!config.jwt.refreshSecret },
     { name: "STRIPE_SECRET_KEY", val: !!config.stripe.secretKey },
+    { name: "GOOGLE_CLIENT_ID", val: !!config.google.clientId },
     { name: "PORT", val: !!config.port },
   ];
 
