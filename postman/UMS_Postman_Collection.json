@@ -1,0 +1,692 @@
+{
+  "info": {
+    "name": "University Management System (UMS) API - Level 2 Batch 7",
+    "description": "Comprehensive enterprise API collection covering Authentication, RBAC (Admin, Faculty, Student), Academic Entities, Concurrency-Safe Enrollments, Grading, Stripe Payments, and Auditing.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01. Authentication & Security",
+      "item": [
+        {
+          "name": "Register Student",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newstudent@university.edu\",\n  \"password\": \"StudentPassword123!\",\n  \"firstName\": \"Rahim\",\n  \"lastName\": \"Uddin\",\n  \"phoneNumber\": \"+8801811223344\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          }
+        },
+        {
+          "name": "Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if(res.success && res.data && res.data.accessToken) {",
+                  "  pm.environment.set('adminToken', res.data.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@university.edu\",\n  \"password\": \"AdminPassword123!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login Faculty",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if(res.success && res.data && res.data.accessToken) {",
+                  "  pm.environment.set('facultyToken', res.data.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"faculty@university.edu\",\n  \"password\": \"FacultyPassword123!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if(res.success && res.data && res.data.accessToken) {",
+                  "  pm.environment.set('studentToken', res.data.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@university.edu\",\n  \"password\": \"StudentPassword123!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Google Social Login (GCP)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"eyJhbGciOiJSUzI1NiJ9.eyJlbWFpbCI6Imdvb2dsZXVzZXJAdW5pdmVyc2l0eS5lZHUiLCJzdWIiOiIxMTIyMzMzNDQiLCJnaXZlbl9uYW1lIjoiQWxpIiwmZmFtaWx5X25hbWUiOiJIYXNhbiJ9.mocksignature\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/google-login", "host": ["{{baseUrl}}"], "path": ["auth", "google-login"] }
+          }
+        },
+        {
+          "name": "Refresh Access Token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/refresh-token", "host": ["{{baseUrl}}"], "path": ["auth", "refresh-token"] }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oldPassword\": \"StudentPassword123!\",\n  \"newPassword\": \"NewSecurePass123!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/change-password", "host": ["{{baseUrl}}"], "path": ["auth", "change-password"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Users & Profiles",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": { "raw": "{{baseUrl}}/users/me", "host": ["{{baseUrl}}"], "path": ["users", "me"] }
+          }
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+8801999887766\",\n  \"address\": \"Dhanmondi, Dhaka, Bangladesh\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/users/me", "host": ["{{baseUrl}}"], "path": ["users", "me"] }
+          }
+        },
+        {
+          "name": "Get All Users (Admin - Pagination & Filters)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/users?page=1&limit=10&role=STUDENT&search=Tanvir",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "role", "value": "STUDENT" },
+                { "key": "search", "value": "Tanvir" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update User Role / Status (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/users/{{targetUserId}}/role-status", "host": ["{{baseUrl}}"], "path": ["users", "{{targetUserId}}", "role-status"] }
+          }
+        },
+        {
+          "name": "Soft Delete User (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/users/{{targetUserId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{targetUserId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Academic Departments",
+      "item": [
+        {
+          "name": "Create Department (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if(res.success && res.data) { pm.environment.set('departmentId', res.data.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"CE\",\n  \"name\": \"Civil Engineering\",\n  \"description\": \"Department of Civil and Environmental Engineering\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/departments", "host": ["{{baseUrl}}"], "path": ["departments"] }
+          }
+        },
+        {
+          "name": "Get All Departments",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": { "raw": "{{baseUrl}}/departments?page=1&limit=10&search=Engineering", "host": ["{{baseUrl}}"], "path": ["departments"] }
+          }
+        },
+        {
+          "name": "Get Department by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": { "raw": "{{baseUrl}}/departments/{{departmentId}}", "host": ["{{baseUrl}}"], "path": ["departments", "{{departmentId}}"] }
+          }
+        },
+        {
+          "name": "Update Department (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated Department of Civil and Environmental Engineering\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/departments/{{departmentId}}", "host": ["{{baseUrl}}"], "path": ["departments", "{{departmentId}}"] }
+          }
+        },
+        {
+          "name": "Soft Delete Department (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/departments/{{departmentId}}", "host": ["{{baseUrl}}"], "path": ["departments", "{{departmentId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. Academic Semesters",
+      "item": [
+        {
+          "name": "Create Semester (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if(res.success && res.data) { pm.environment.set('semesterId', res.data.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"SUMMER2026\",\n  \"name\": \"Summer 2026\",\n  \"year\": 2026,\n  \"startDate\": \"2026-06-01T00:00:00.000Z\",\n  \"endDate\": \"2026-08-31T00:00:00.000Z\",\n  \"isCurrent\": false,\n  \"isRegistrationOpen\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/semesters", "host": ["{{baseUrl}}"], "path": ["semesters"] }
+          }
+        },
+        {
+          "name": "Get All Semesters",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": { "raw": "{{baseUrl}}/semesters?page=1&limit=10&isCurrent=true", "host": ["{{baseUrl}}"], "path": ["semesters"] }
+          }
+        },
+        {
+          "name": "Get Semester by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": { "raw": "{{baseUrl}}/semesters/{{semesterId}}", "host": ["{{baseUrl}}"], "path": ["semesters", "{{semesterId}}"] }
+          }
+        },
+        {
+          "name": "Update Semester (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isRegistrationOpen\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/semesters/{{semesterId}}", "host": ["{{baseUrl}}"], "path": ["semesters", "{{semesterId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05. Courses & Curricula",
+      "item": [
+        {
+          "name": "Create Course with Prerequisites (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if(res.success && res.data) { pm.environment.set('courseId', res.data.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"CSE305\",\n  \"title\": \"Operating Systems\",\n  \"credits\": 3,\n  \"description\": \"Processes, threads, synchronization, memory and file systems\",\n  \"departmentId\": \"{{departmentId}}\",\n  \"prerequisiteIds\": []\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/courses", "host": ["{{baseUrl}}"], "path": ["courses"] }
+          }
+        },
+        {
+          "name": "Get All Courses (Search & Pagination)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": { "raw": "{{baseUrl}}/courses?page=1&limit=10&search=Programming", "host": ["{{baseUrl}}"], "path": ["courses"] }
+          }
+        },
+        {
+          "name": "Get Course by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": { "raw": "{{baseUrl}}/courses/{{courseId}}", "host": ["{{baseUrl}}"], "path": ["courses", "{{courseId}}"] }
+          }
+        },
+        {
+          "name": "Update Course (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Modern Operating Systems & Architecture\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/courses/{{courseId}}", "host": ["{{baseUrl}}"], "path": ["courses", "{{courseId}}"] }
+          }
+        },
+        {
+          "name": "Soft Delete Course (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/courses/{{courseId}}", "host": ["{{baseUrl}}"], "path": ["courses", "{{courseId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. Course Offerings & Sections",
+      "item": [
+        {
+          "name": "Create Course Offering (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if(res.success && res.data) { pm.environment.set('offeringId', res.data.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"semesterId\": \"{{semesterId}}\",\n  \"initialSections\": [\n    {\n      \"sectionNumber\": 1,\n      \"capacity\": 30,\n      \"roomNumber\": \"UB-501\",\n      \"schedule\": \"Sun, Tue 11:30 AM - 01:00 PM\"\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/course-offerings", "host": ["{{baseUrl}}"], "path": ["course-offerings"] }
+          }
+        },
+        {
+          "name": "Add Section to Offering (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if(res.success && res.data) { pm.environment.set('sectionId', res.data.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sectionNumber\": 2,\n  \"capacity\": 35,\n  \"roomNumber\": \"UB-502\",\n  \"schedule\": \"Mon, Wed 09:30 AM - 11:00 AM\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/course-offerings/{{offeringId}}/sections", "host": ["{{baseUrl}}"], "path": ["course-offerings", "{{offeringId}}", "sections"] }
+          }
+        },
+        {
+          "name": "Get All Course Offerings",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": { "raw": "{{baseUrl}}/course-offerings?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["course-offerings"] }
+          }
+        },
+        {
+          "name": "Get Course Offering by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": { "raw": "{{baseUrl}}/course-offerings/{{offeringId}}", "host": ["{{baseUrl}}"], "path": ["course-offerings", "{{offeringId}}"] }
+          }
+        },
+        {
+          "name": "Update Section Capacity / Faculty (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"capacity\": 40,\n  \"roomNumber\": \"UB-505\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/course-offerings/sections/{{sectionId}}", "host": ["{{baseUrl}}"], "path": ["course-offerings", "sections", "{{sectionId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07. Course Registration & Rosters",
+      "item": [
+        {
+          "name": "Register Course (Student - ACID Safe)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sectionId\": \"{{sectionId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/enrollments/register", "host": ["{{baseUrl}}"], "path": ["enrollments", "register"] }
+          }
+        },
+        {
+          "name": "Get My Enrolled Courses (Student)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": { "raw": "{{baseUrl}}/enrollments/my-courses", "host": ["{{baseUrl}}"], "path": ["enrollments", "my-courses"] }
+          }
+        },
+        {
+          "name": "Withdraw Course (Student)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sectionId\": \"{{sectionId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/enrollments/withdraw", "host": ["{{baseUrl}}"], "path": ["enrollments", "withdraw"] }
+          }
+        },
+        {
+          "name": "Get Section Student Roster (Faculty/Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{facultyToken}}" }],
+            "url": { "raw": "{{baseUrl}}/enrollments/section/{{sectionId}}", "host": ["{{baseUrl}}"], "path": ["enrollments", "section", "{{sectionId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08. Grading, Marks & Transcript",
+      "item": [
+        {
+          "name": "Submit Student Marks (Faculty)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{facultyToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enrollmentId\": \"{{enrollmentId}}\",\n  \"midtermMarks\": 28,\n  \"finalMarks\": 47,\n  \"assessmentMarks\": 19,\n  \"isPublished\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/grades/submit", "host": ["{{baseUrl}}"], "path": ["grades", "submit"] }
+          }
+        },
+        {
+          "name": "Get Section Grades (Faculty/Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{facultyToken}}" }],
+            "url": { "raw": "{{baseUrl}}/grades/section/{{sectionId}}", "host": ["{{baseUrl}}"], "path": ["grades", "section", "{{sectionId}}"] }
+          }
+        },
+        {
+          "name": "Get My Academic Transcript (Student)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": { "raw": "{{baseUrl}}/grades/my-transcript", "host": ["{{baseUrl}}"], "path": ["grades", "my-transcript"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "09. Tuition Billing & Stripe Payments",
+      "item": [
+        {
+          "name": "Get My Tuition Invoices (Student)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if(res.success && res.data && res.data.tuitionFees && res.data.tuitionFees.length > 0) {",
+                  "  pm.environment.set('tuitionFeeId', res.data.tuitionFees[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": { "raw": "{{baseUrl}}/payments/my-invoices", "host": ["{{baseUrl}}"], "path": ["payments", "my-invoices"] }
+          }
+        },
+        {
+          "name": "Create Stripe Checkout Session (Student)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tuitionFeeId\": \"{{tuitionFeeId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/payments/create-checkout-session", "host": ["{{baseUrl}}"], "path": ["payments", "create-checkout-session"] }
+          }
+        },
+        {
+          "name": "Verify Stripe Payment Session",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/payments/verify?session_id={{sessionId}}", "host": ["{{baseUrl}}"], "path": ["payments", "verify"] }
+          }
+        },
+        {
+          "name": "Get All University Payments (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/payments?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["payments"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Admin Analytics & Audit Logs",
+      "item": [
+        {
+          "name": "Get University Dashboard Analytics (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/admin/dashboard-stats", "host": ["{{baseUrl}}"], "path": ["admin", "dashboard-stats"] }
+          }
+        },
+        {
+          "name": "Get System Audit Logs (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/audit-logs?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["audit-logs"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. System Health Check",
+      "item": [
+        {
+          "name": "API Health Check",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          }
+        }
+      ]
+    }
+  ]
+}
