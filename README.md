@@ -11,7 +11,7 @@
 ```text
 Project Name    : University Management System (UMS)
 Backend Repo    : https://github.com/Abdulmazid24/B7A6.git
-Live API        : https://b7a6-university-management-system.vercel.app
+Live API        : https://b7-a6-kohl.vercel.app
 API Docs        : Available in /postman/UMS_Postman_Collection.json
 Demo Video      : https://drive.google.com/file/d/your-video-id/view
 Admin Email     : admin@university.edu
