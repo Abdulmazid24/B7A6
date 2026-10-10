@@ -12,7 +12,7 @@
 Project Name    : University Management System (UMS)
 Backend Repo    : https://github.com/Abdulmazid24/B7A6.git
 Live API        : https://b7-a6-kohl.vercel.app
-API Docs        : Available in /postman/UMS_Postman_Collection.json
+API Docs        : https://documenter.getpostman.com/view/58861661/2sBYHQ2i1P
 Demo Video      : https://www.loom.com/share/c0e20419d6c44f7faa1b8a32e6baf8a4
 Admin Email     : admin@university.edu
 Admin Password  : AdminPassword123!
