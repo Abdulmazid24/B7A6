@@ -23,6 +23,9 @@ app.use(helmet());
 // Credentialed browser requests are limited to the configured frontend.
 const allowedOrigins = new Set([
   config.clientUrl.replace(/\/$/, ""),
+  // Keep the deployed Assignment 7 frontend available when CLIENT_URL is
+  // missing or still points at a local development URL in Vercel.
+  "https://b7-a7-lac.vercel.app",
   ...(config.env === "production" ? [] : ["http://localhost:3000", "http://127.0.0.1:3000"]),
 ]);
 
