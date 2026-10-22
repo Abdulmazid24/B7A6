@@ -240,7 +240,11 @@ const registerCourse = async (studentId: string, sectionId: string) => {
     appCache.del("ADMIN_DASHBOARD_STATS");
 
     return enrollment;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      maxWait: 10_000,
+      timeout: 15_000,
+    });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
       throw new AppError(HTTP_STATUS.CONFLICT, "Another registration was processed at the same time. Refresh and retry.");
