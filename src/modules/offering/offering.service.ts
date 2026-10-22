@@ -10,7 +10,7 @@ import {
   IUpdateSectionPayload,
 } from "./offering.interface";
 
-const createOffering = async (adminId: string, payload: ICreateOfferingInput) => {
+const createOffering = async (adminId: string, payload: ICreateOfferingPayload) => {
   const [course, semester] = await Promise.all([
     prisma.course.findUnique({ where: { id: payload.courseId } }),
     prisma.academicSemester.findUnique({ where: { id: payload.semesterId } }),

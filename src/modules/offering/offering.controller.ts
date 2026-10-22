@@ -4,6 +4,7 @@ import { sendResponse } from "../../utils/send-response";
 import { OfferingService } from "./offering.service";
 import { HTTP_STATUS } from "../../constants/status-codes";
 import { RESPONSE_MESSAGES } from "../../constants/response-messages";
+import { USER_ROLES } from "../../constants/roles";
 
 const createOffering = catchAsync(async (req: Request, res: Response) => {
   const result = await OfferingService.createOffering(req.user!.id, req.body);
@@ -35,7 +36,10 @@ const getAllOfferings = catchAsync(async (req: Request, res: Response) => {
   const result = await OfferingService.getAllOfferings(req.query, {
     semesterId: req.query.semesterId as string,
     courseId: req.query.courseId as string,
-    facultyId: req.query.facultyId as string,
+    facultyId:
+      req.user?.role === USER_ROLES.FACULTY
+        ? req.user.id
+        : (req.query.facultyId as string),
     search: req.query.search as string,
   });
 

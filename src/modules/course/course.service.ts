@@ -164,7 +164,7 @@ const getCourseById = async (id: string) => {
 const updateCourse = async (
   adminId: string,
   id: string,
-  payload: Partial<ICreateCourseInput>
+  payload: IUpdateCoursePayload
 ) => {
   const course = await prisma.course.findUnique({ where: { id } });
 

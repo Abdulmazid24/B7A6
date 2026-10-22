@@ -7,9 +7,9 @@ import { CourseValidation } from "./course.validation";
 
 const router = Router();
 
-// Read courses (Authenticated)
-router.get("/", auth(), CourseController.getAllCourses);
-router.get("/:id", auth(), CourseController.getCourseById);
+// The public curriculum catalog is safe to browse without an account.
+router.get("/", CourseController.getAllCourses);
+router.get("/:id", CourseController.getCourseById);
 
 // Admin-only course operations
 router.post(

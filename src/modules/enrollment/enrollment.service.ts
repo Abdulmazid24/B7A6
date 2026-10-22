@@ -4,12 +4,14 @@ import { AuditService } from "../audit/audit.service";
 import { appCache } from "../../utils/cache";
 import { AUDIT_ACTIONS, AUDIT_RESOURCES } from "../../constants/audit-events";
 import { HTTP_STATUS } from "../../constants/status-codes";
+import { Prisma } from "../../../prisma/generated/prisma/client";
 
 const MAX_CREDITS_PER_SEMESTER = 15;
 const COST_PER_CREDIT = 500.0;
 
 const registerCourse = async (studentId: string, sectionId: string) => {
-  return await prisma.$transaction(async (tx) => {
+  try {
+    return await prisma.$transaction(async (tx) => {
     // 1. Fetch section and associated offering, course, and semester
     const section = await tx.courseSection.findUnique({
       where: { id: sectionId },
@@ -57,16 +59,15 @@ const registerCourse = async (studentId: string, sectionId: string) => {
     }
 
     // 4. Duplicate Registration Check
-    const existingEnrollment = await tx.studentEnrollment.findFirst({
-      where: {
-        studentId,
-        sectionId,
-        status: "ENROLLED",
-      },
+    const existingEnrollment = await tx.studentEnrollment.findUnique({
+      where: { studentId_sectionId: { studentId, sectionId } },
     });
 
-    if (existingEnrollment) {
+    if (existingEnrollment?.status === "ENROLLED") {
       throw new AppError(HTTP_STATUS.BAD_REQUEST, "You are already enrolled in this section");
+    }
+    if (existingEnrollment?.status === "COMPLETED") {
+      throw new AppError(HTTP_STATUS.BAD_REQUEST, "You have already completed this course section");
     }
 
     // Check if enrolled in another section of the same course in this semester
@@ -157,32 +158,38 @@ const registerCourse = async (studentId: string, sectionId: string) => {
     }
 
     // 7. Perform Enrollment & Increment Section Count
-    const enrollment = await tx.studentEnrollment.create({
-      data: {
-        studentId,
-        sectionId,
-        status: "ENROLLED",
-      },
-      include: {
-        section: {
-          include: {
-            offering: {
-              include: {
-                course: true,
-                semester: true,
-              },
+    // Atomically reserve a seat. The earlier capacity check is only a fast path;
+    // this conditional update is what prevents concurrent requests overselling it.
+    const seatReserved = await tx.courseSection.updateMany({
+      where: { id: sectionId, isDeleted: false, enrolledCount: { lt: section.capacity } },
+      data: { enrolledCount: { increment: 1 } },
+    });
+    if (seatReserved.count !== 1) {
+      throw new AppError(HTTP_STATUS.CONFLICT, `Section ${section.sectionNumber} is full.`);
+    }
+
+    const enrollmentInclude = {
+      section: {
+        include: {
+          offering: {
+            include: {
+              course: true,
+              semester: true,
             },
           },
         },
       },
-    });
-
-    await tx.courseSection.update({
-      where: { id: sectionId },
-      data: {
-        enrolledCount: { increment: 1 },
-      },
-    });
+    } as const;
+    const enrollment = existingEnrollment
+      ? await tx.studentEnrollment.update({
+          where: { id: existingEnrollment.id },
+          data: { status: "ENROLLED", enrolledAt: new Date() },
+          include: enrollmentInclude,
+        })
+      : await tx.studentEnrollment.create({
+          data: { studentId, sectionId, status: "ENROLLED" },
+          include: enrollmentInclude,
+        });
 
     // 8. Update or Create Tuition Fee Bill for this semester
     const tuitionAmountForCourse = course.credits * COST_PER_CREDIT;
@@ -228,12 +235,18 @@ const registerCourse = async (studentId: string, sectionId: string) => {
         semesterCode: semester.code,
         credits: course.credits,
       },
-    });
+    }, tx);
 
     appCache.del("ADMIN_DASHBOARD_STATS");
 
     return enrollment;
-  });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+      throw new AppError(HTTP_STATUS.CONFLICT, "Another registration was processed at the same time. Refresh and retry.");
+    }
+    throw error;
+  }
 };
 
 const withdrawCourse = async (studentId: string, sectionId: string) => {
@@ -266,20 +279,21 @@ const withdrawCourse = async (studentId: string, sectionId: string) => {
     const { course, semester } = section.offering;
 
     // Update Enrollment Status
-    const updated = await tx.studentEnrollment.update({
-      where: { id: enrollment.id },
-      data: {
-        status: "WITHDRAWN",
-      },
+    const enrollmentClaim = await tx.studentEnrollment.updateMany({
+      where: { id: enrollment.id, status: "ENROLLED" },
+      data: { status: "WITHDRAWN" },
     });
+    if (enrollmentClaim.count !== 1) {
+      throw new AppError(HTTP_STATUS.CONFLICT, "This enrollment has already changed. Refresh and try again.");
+    }
 
-    // Decrement section count
-    await tx.courseSection.update({
-      where: { id: sectionId },
-      data: {
-        enrolledCount: { decrement: 1 },
-      },
+    const seatReleased = await tx.courseSection.updateMany({
+      where: { id: sectionId, enrolledCount: { gt: 0 } },
+      data: { enrolledCount: { decrement: 1 } },
     });
+    if (seatReleased.count !== 1) {
+      throw new AppError(HTTP_STATUS.CONFLICT, "Section seat count changed unexpectedly. Please retry.");
+    }
 
     // Adjust tuition fee
     const refundAmount = course.credits * COST_PER_CREDIT;
@@ -314,9 +328,9 @@ const withdrawCourse = async (studentId: string, sectionId: string) => {
         courseCode: course.code,
         semesterCode: semester.code,
       },
-    });
+    }, tx);
 
-    return updated;
+    return tx.studentEnrollment.findUniqueOrThrow({ where: { id: enrollment.id } });
   });
 };
 
@@ -365,7 +379,11 @@ const getMyEnrolledCourses = async (studentId: string, semesterId?: string) => {
   return enrollments;
 };
 
-const getSectionRoster = async (sectionId: string) => {
+const getSectionRoster = async (
+  sectionId: string,
+  requesterId: string,
+  requesterRole: string
+) => {
   const section = await prisma.courseSection.findUnique({
     where: { id: sectionId },
     include: {
@@ -400,6 +418,10 @@ const getSectionRoster = async (sectionId: string) => {
 
   if (!section || section.isDeleted) {
     throw new AppError(HTTP_STATUS.NOT_FOUND, "Section not found");
+  }
+
+  if (requesterRole === "FACULTY" && section.facultyId !== requesterId) {
+    throw new AppError(HTTP_STATUS.FORBIDDEN, "You can only view rosters for your assigned sections");
   }
 
   return section;

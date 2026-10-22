@@ -67,8 +67,8 @@ const createCheckoutSession = async (studentId: string, tuitionFeeId: string) =>
       studentId,
       paymentId: pendingPayment.id,
     },
-    success_url: `${config.clientUrl}/api/v1/payments/verify?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${config.clientUrl}/api/v1/payments/cancelled`,
+    success_url: `${config.clientUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${config.clientUrl}/payment/cancel`,
   });
 
   // Update payment with Stripe Session ID
@@ -156,10 +156,11 @@ const processSuccessfulPayment = async (session: any) => {
     return; // Already processed
   }
 
-  await prisma.$transaction(async (tx) => {
-    // 1. Mark Payment as completed
-    await tx.payment.update({
-      where: { id: payment.id },
+  const processed = await prisma.$transaction(async (tx) => {
+    // Claim this pending payment atomically so webhook and return-page verification
+    // cannot both apply the same invoice balance update.
+    const claim = await tx.payment.updateMany({
+      where: { id: payment.id, status: "PENDING" },
       data: {
         status: "COMPLETED",
         stripePaymentIntentId:
@@ -168,6 +169,8 @@ const processSuccessfulPayment = async (session: any) => {
         paidAt: new Date(),
       },
     });
+
+    if (claim.count === 0) return false;
 
     // 2. Update Tuition Fee status
     const fee = await tx.tuitionFee.findUnique({
@@ -188,7 +191,11 @@ const processSuccessfulPayment = async (session: any) => {
         },
       });
     }
+
+    return true;
   });
+
+  if (!processed) return;
 
   await AuditService.createAuditLog({
     userId: payment.studentId,

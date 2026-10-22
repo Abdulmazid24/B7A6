@@ -7,9 +7,9 @@ import { DepartmentValidation } from "./department.validation";
 
 const router = Router();
 
-// Public/Authenticated can read
-router.get("/", auth(), DepartmentController.getAllDepartments);
-router.get("/:id", auth(), DepartmentController.getDepartmentById);
+// The public curriculum catalog is safe to browse without an account.
+router.get("/", DepartmentController.getAllDepartments);
+router.get("/:id", DepartmentController.getDepartmentById);
 
 // Admin-only mutations
 router.post(

@@ -1,15 +1,18 @@
 import prisma from "../../lib/prisma";
 import { IPaginationOptions, calculatePagination } from "../../utils/pagination";
 import { ICreateAuditLogInput, IAuditLogFilterParams } from "./audit.interface";
+import { Prisma } from "../../../prisma/generated/prisma/client";
 
-const createAuditLog = async (data: ICreateAuditLogInput) => {
+type AuditDbClient = Pick<Prisma.TransactionClient, "auditLog">;
+
+const createAuditLog = async (data: ICreateAuditLogInput, client: AuditDbClient = prisma) => {
   try {
     const detailsString =
       typeof data.details === "object" && data.details !== null
         ? JSON.stringify(data.details)
         : data.details || null;
 
-    return await prisma.auditLog.create({
+    return await client.auditLog.create({
       data: {
         userId: data.userId || null,
         action: data.action,

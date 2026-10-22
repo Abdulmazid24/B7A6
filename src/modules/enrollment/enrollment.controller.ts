@@ -49,7 +49,9 @@ const getMyEnrolledCourses = catchAsync(async (req: Request, res: Response) => {
 
 const getSectionRoster = catchAsync(async (req: Request, res: Response) => {
   const result = await EnrollmentService.getSectionRoster(
-    req.params.sectionId as string
+    req.params.sectionId as string,
+    req.user!.id,
+    req.user!.role
   );
 
   sendResponse(res, {

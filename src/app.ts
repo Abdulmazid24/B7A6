@@ -10,6 +10,7 @@ import { requestLogger } from "./middleware/request-logger";
 
 import { PaymentController } from "./modules/payment/payment.controller";
 import { HTTP_STATUS } from "./constants/status-codes";
+import { config } from "./config";
 
 const app: Application = express();
 
@@ -19,12 +20,20 @@ app.use(requestLogger);
 // Security HTTP headers
 app.use(helmet());
 
-// CORS Configuration - Allows web clients, Postman, and deployed frontends
+// Credentialed browser requests are limited to the configured frontend.
+const allowedOrigins = new Set([
+  config.clientUrl.replace(/\/$/, ""),
+  ...(config.env === "production" ? [] : ["http://localhost:3000", "http://127.0.0.1:3000"]),
+]);
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, or Postman) or any origin
-      callback(null, true);
+      if (!origin || allowedOrigins.has(origin.replace(/\/$/, ""))) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error("Origin is not allowed by CORS"));
     },
     credentials: true,
   })

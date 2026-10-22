@@ -131,7 +131,7 @@ const getSemesterById = async (id: string) => {
 const updateSemester = async (
   adminId: string,
   id: string,
-  payload: Partial<ICreateSemesterInput>
+  payload: IUpdateSemesterPayload
 ) => {
   const semester = await prisma.academicSemester.findUnique({ where: { id } });
 

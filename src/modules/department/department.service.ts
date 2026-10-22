@@ -105,7 +105,7 @@ const getDepartmentById = async (id: string) => {
 const updateDepartment = async (
   adminId: string,
   id: string,
-  payload: Partial<ICreateDepartmentInput>
+  payload: IUpdateDepartmentPayload
 ) => {
   const department = await prisma.academicDepartment.findUnique({ where: { id } });
 

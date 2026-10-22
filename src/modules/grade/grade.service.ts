@@ -182,7 +182,20 @@ const getSectionGrades = async (user: IAuthUser, sectionId: string) => {
 };
 
 const getMyTranscript = async (studentId: string) => {
-  const enrollments = await prisma.studentEnrollment.findMany({
+  const [student, enrollments] = await Promise.all([prisma.user.findUnique({
+    where: { id: studentId },
+    select: {
+      id: true,
+      profile: {
+        select: {
+          firstName: true,
+          lastName: true,
+          studentId: true,
+          department: { select: { name: true } },
+        },
+      },
+    },
+  }), prisma.studentEnrollment.findMany({
     where: {
       studentId,
       grade: { isPublished: true },
@@ -200,7 +213,11 @@ const getMyTranscript = async (studentId: string) => {
       },
       grade: true,
     },
-  });
+  })]);
+
+  if (!student) {
+    throw new AppError(HTTP_STATUS.NOT_FOUND, "Student record not found");
+  }
 
   // Group by Semester
   const semesterMap = new Map<string, any>();
@@ -259,7 +276,10 @@ const getMyTranscript = async (studentId: string) => {
         ? Math.round((sem.semesterGradePointsWeighted / sem.semesterCredits) * 100) / 100
         : 0.0;
     return {
-      ...sem,
+      semesterId: sem.semester.id,
+      semesterName: sem.semester.name,
+      courses: sem.courses,
+      semesterCredits: sem.semesterCredits,
       semesterGpa: gpa,
     };
   });
@@ -270,9 +290,13 @@ const getMyTranscript = async (studentId: string) => {
       : 0.0;
 
   return {
-    studentId,
-    totalCreditsAttempted,
-    totalCreditsEarned,
+    student: {
+      id: student.id,
+      name: student.profile ? `${student.profile.firstName} ${student.profile.lastName}`.trim() : "Student",
+      studentId: student.profile?.studentId ?? "",
+      department: student.profile?.department?.name ?? "Department not assigned",
+    },
+    totalEarnedCredits: totalCreditsEarned,
     cgpa,
     semesters,
   };
